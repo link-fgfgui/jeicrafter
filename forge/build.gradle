@@ -48,6 +48,11 @@ sourceSets.main.resources.srcDir 'src/generated/resources'
 dependencies {
     compileOnly project(":common")
     annotationProcessor("org.spongepowered:mixin:0.8.5-SNAPSHOT:processor")
+    compileOnly "mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-common:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-gui:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-lib:${jei_version}"
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-forge:${jei_version}"
 }
 
 jar {

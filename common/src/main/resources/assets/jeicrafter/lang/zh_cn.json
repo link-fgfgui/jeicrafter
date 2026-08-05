@@ -1,0 +1,8 @@
+{
+  "key.categories.jeicrafter": "JEI Crafter",
+  "key.jeicrafter.craft": "自动合成",
+  "jeicrafter.message.need_crafting_table": "自动合成需要先打开合成台。",
+  "jeicrafter.message.not_crafting_recipe": "该书签配方不是合成配方。",
+  "jeicrafter.message.missing_material": "无法自动合成:缺少 %s(且没有对应的书签配方)。",
+  "jeicrafter.message.transfer_failed": "材料转移失败。"
+}

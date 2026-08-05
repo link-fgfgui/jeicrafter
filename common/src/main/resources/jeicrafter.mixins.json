@@ -7,7 +7,9 @@
     "mixins": [
     ],
     "client": [
-        "MixinMinecraft"
+        "MixinMinecraft",
+        "MixinJeiFocusInputHandler",
+        "MixinJeiBookmarkOverlay"
     ],
     "server": [
     ],
