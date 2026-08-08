@@ -13,8 +13,18 @@ dependencies {
     modCompileOnly "mezz.jei:jei-${minecraft_version}-fabric-api:${jei_version}"
     modCompileOnly "mezz.jei:jei-${minecraft_version}-fabric:${jei_version}"
     modLocalRuntime "mezz.jei:jei-${minecraft_version}-fabric:${jei_version}"
+    modImplementation "${taglib_group}:justenoughtaglib-fabric-${minecraft_version}:${taglib_version}"
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
     implementation project(":common")
+}
+
+repositories {
+    mavenLocal()
+    // justenoughtaglib-fabric transitively depends on fuzs.forgeconfigapiport, must pull from Fuzs's maven
+    maven {
+        name = 'Fuzs Mod Resources'
+        url = 'https://raw.githubusercontent.com/Fuzss/modresources/main/maven/'
+    }
 }
 
 loom {

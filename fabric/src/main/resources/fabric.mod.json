@@ -1,6 +1,6 @@
 {
     "schemaVersion": 1,
-    "id": "mod_id",
+    "id": "${mod_id}",
     "version": "${version}",
     "name": "${mod_name}",
     "description": "${description}",
@@ -9,17 +9,17 @@
     ],
     "contact": {
         "homepage": "https://fabricmc.net/",
-        "sources": "https://github.com/FabricMC/fabric-example-mod"
+        "sources": "https://github.com/jlllarsen/jeicrafter"
     },
     "license": "${license}",
     "icon": "assets/jeicrafter/${mod_id}.png",
-    "environment": "*",
+    "environment": "client",
     "entrypoints": {
-        "main": [
-            "com.jeicrafter.JeiCrafter"
-        ],
         "client": [
             "com.jeicrafter.fabric.client.JeiCrafterClient"
+        ],
+        "jei_mod_plugin": [
+            "com.jeicrafter.jei.FabricJeiPlugin"
         ]
     },
     "mixins": [
@@ -31,10 +31,8 @@
         "fabric": "*",
         "minecraft": "${minecraft_version}",
         "java": ">=17",
-        "jei": "${jei_version_range_fabric}"
-    },
-    "suggests": {
-        "another-mod": "*"
+        "jei": "${jei_version_range_fabric}",
+        "justenoughtaglib": ">=1.1.0"
     }
 }
   

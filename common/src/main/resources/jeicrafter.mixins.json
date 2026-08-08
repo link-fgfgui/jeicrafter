@@ -7,9 +7,11 @@
     "mixins": [
     ],
     "client": [
+        "KeyMappingAccessor",
         "MixinMinecraft",
         "MixinJeiFocusInputHandler",
-        "MixinJeiBookmarkOverlay"
+        "MixinJeiBookmarkOverlay",
+        "MixinJeiRecipeBookmarkButton"
     ],
     "server": [
     ],
@@ -17,4 +19,3 @@
         "defaultRequire": 1
     }
 }
-

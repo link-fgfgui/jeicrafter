@@ -3,6 +3,6 @@
   "key.jeicrafter.craft": "Auto Craft",
   "jeicrafter.message.need_crafting_table": "Open a crafting table to auto-craft.",
   "jeicrafter.message.not_crafting_recipe": "The bookmarked recipe is not a crafting recipe.",
-  "jeicrafter.message.missing_material": "Cannot auto-craft: missing %s (no bookmarked recipe for it).",
+  "jeicrafter.message.missing_material": "Cannot auto-craft: %1$s requires %2$s, but %2$s has no bookmarked recipe.",
   "jeicrafter.message.transfer_failed": "Failed to transfer recipe materials."
 }

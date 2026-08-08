@@ -21,6 +21,11 @@ dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-common:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-gui:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-lib:${jei_version}"
+    modImplementation "${taglib_group}:justenoughtaglib-${project.name}-${minecraft_version}:${taglib_version}"
+}
+
+repositories {
+    mavenLocal()
 }
 
 configurations {
