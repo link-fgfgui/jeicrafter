@@ -1,6 +1,5 @@
 package com.jeicrafter.client;
 
-import com.jeicrafter.Constants;
 import com.jeicrafter.mixin.KeyMappingAccessor;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
@@ -8,7 +7,8 @@ import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Key bindings for this mod. Defaults to Z key, freely reconfigurable in the Controls screen.
+ * Key bindings for this mod. Defaults to Z key for auto-craft and H for workstation highlight,
+ * freely reconfigurable in the Controls screen.
  */
 public final class JeiCrafterKeys {
 
@@ -23,8 +23,16 @@ public final class JeiCrafterKeys {
 		"key.categories.jeicrafter"
 	);
 
-	/** Throttle counter for periodic key state output, prints once every 40 ticks (~2 seconds). */
-	private static int tickCounter;
+	/**
+	 * On a JEI recipe screen, pressing this key highlights every workstation block for the current
+	 * recipe across the loaded world. Only meaningful for non-crafting recipe categories.
+	 */
+	public static final KeyMapping HIGHLIGHT_WORKSTATION = new KeyMapping(
+		"key.jeicrafter.highlight_workstation",
+		InputConstants.Type.KEYSYM,
+		GLFW.GLFW_KEY_H,
+		"key.categories.jeicrafter"
+	);
 
 	private JeiCrafterKeys() {
 	}
@@ -47,36 +55,26 @@ public final class JeiCrafterKeys {
 
 		InputConstants.Key bound = ((KeyMappingAccessor) CRAFT).jeicrafter$getKey();
 		long window = minecraft.getWindow().getWindow();
+		return isBoundKeyDown(bound, window);
+	}
+
+	/**
+	 * Returns whether the given GLFW key press corresponds to the configured highlight key.
+	 * <p>
+	 * This is used by the {@code RecipesGui} key mixin: a screen's {@code keyPressed} receives the
+	 * raw key/scanCode, which we compare against the {@link InputConstants.Type#KEYSYM} binding.
+	 */
+	public static boolean isHighlightKey(int keyCode, int scanCode) {
+		InputConstants.Key bound = ((KeyMappingAccessor) HIGHLIGHT_WORKSTATION).jeicrafter$getKey();
+		InputConstants.Key pressed = InputConstants.getKey(keyCode, scanCode);
+		return bound.equals(pressed);
+	}
+
+	private static boolean isBoundKeyDown(InputConstants.Key bound, long window) {
 		return switch (bound.getType()) {
 			case KEYSYM -> InputConstants.isKeyDown(window, bound.getValue());
 			case MOUSE -> GLFW.glfwGetMouseButton(window, bound.getValue()) == GLFW.GLFW_PRESS;
 			case SCANCODE -> false;
 		};
-	}
-
-	/**
-	 * Debug: periodically prints the craft key's current state. Used to diagnose "holding the key but nothing triggers" —
-	 * comparing {@code isDown()} with the GLFW physical key state distinguishes "key not pressed",
-	 * "binding changed/lost" vs "KeyMapping state not updated".
-	 */
-	public static void logTickState() {
-		if (++tickCounter % 40 != 0) {
-			return;
-		}
-		Minecraft minecraft = Minecraft.getInstance();
-		if (minecraft.getWindow() == null) {
-			return;
-		}
-		InputConstants.Key bound = ((KeyMappingAccessor) CRAFT).jeicrafter$getKey();
-		boolean rawHeld = isCraftKeyDown();
-		Constants.LOG.info(
-			"[AutoCraft] KEY BEACON isDown={} rawHeld={} bound='{}'(code={}) save='{}' unbound={}",
-			CRAFT.isDown(),
-			rawHeld,
-			bound.getDisplayName().getString(),
-			bound.getValue(),
-			CRAFT.saveString(),
-			CRAFT.isUnbound()
-		);
 	}
 }

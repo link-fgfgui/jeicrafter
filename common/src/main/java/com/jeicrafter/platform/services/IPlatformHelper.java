@@ -1,5 +1,7 @@
 package com.jeicrafter.platform.services;
 
+import java.nio.file.Path;
+
 public interface IPlatformHelper {
 
     /**
@@ -8,6 +10,13 @@ public interface IPlatformHelper {
      * @return The name of the current platform.
      */
     String getPlatformName();
+
+    /**
+     * Gets the directory where config files should be stored.
+     *
+     * @return The config directory path.
+     */
+    Path getConfigDir();
 
     /**
      * Checks if a mod with the given id is loaded.

@@ -11,7 +11,9 @@
         "MixinMinecraft",
         "MixinJeiFocusInputHandler",
         "MixinJeiBookmarkOverlay",
-        "MixinJeiRecipeBookmarkButton"
+        "MixinJeiRecipeTransferButton",
+        "MixinJeiRecipeTransferErrorMissingSlots",
+        "MixinJeiRecipesGui"
     ],
     "server": [
     ],

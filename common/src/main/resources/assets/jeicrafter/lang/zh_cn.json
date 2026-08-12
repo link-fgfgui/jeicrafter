@@ -1,8 +1,13 @@
 {
   "key.categories.jeicrafter": "JEI Crafter",
   "key.jeicrafter.craft": "自动合成",
+  "key.jeicrafter.highlight_workstation": "高亮配方工作方块",
   "jeicrafter.message.need_crafting_table": "自动合成需要先打开合成台。",
   "jeicrafter.message.not_crafting_recipe": "该书签配方不是合成配方。",
   "jeicrafter.message.missing_material": "无法自动合成: %1$s 需要 %2$s,但没有 %2$s 的书签配方。",
-  "jeicrafter.message.transfer_failed": "材料转移失败。"
+  "jeicrafter.message.transfer_failed": "材料转移失败。",
+  "jeicrafter.message.no_crafting_recipe": "无法自动合成: %1$s 没有合成配方。",
+  "jeicrafter.message.no_workstation": "无法自动合成: 在 %2$s 格范围内没有找到 %1$s 工作方块。",
+  "jeicrafter.message.opening_workstation": "正在打开最近的 %1$s 工作方块以自动合成。",
+  "jeicrafter.message.workstation_highlight": "正在高亮 %1$s 工作方块。"
 }

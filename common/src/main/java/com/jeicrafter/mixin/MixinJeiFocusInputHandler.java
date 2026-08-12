@@ -3,17 +3,15 @@ package com.jeicrafter.mixin;
 import com.jeicrafter.Constants;
 import com.jeicrafter.client.AutoCraftManager;
 import com.jeicrafter.client.JeiCrafterKeys;
-import com.mojang.blaze3d.platform.InputConstants;
-import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.common.input.IInternalKeyMappings;
+import mezz.jei.gui.bookmarks.IBookmark;
+import mezz.jei.gui.bookmarks.RecipeBookmark;
 import mezz.jei.gui.input.CombinedRecipeFocusSource;
 import mezz.jei.gui.input.IClickableIngredientInternal;
 import mezz.jei.gui.input.IUserInputHandler;
 import mezz.jei.gui.input.UserInput;
 import mezz.jei.gui.input.handlers.FocusInputHandler;
 import mezz.jei.gui.input.handlers.SameElementInputHandler;
-import net.minecraft.client.Minecraft;
-import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -28,9 +26,11 @@ import java.util.Optional;
  * Intercepts JEI item clicks (FocusInputHandler covers item list, bookmark bar, recipe screen, and container slots).
  * <p>
  * When holding the designated key + left-clicking an item:
- * - If the item is bookmarked as a recipe bookmark's representative item → claim ownership during simulation (mouse press),
- *   run recursive auto-craft during execution (mouse release), and consume the click;
- * - Otherwise break, do nothing, preserve default JEI behavior.
+ * - The click must land on a recipe bookmark element in the bookmark bar (only bookmark bar elements carry a
+ *   {@link mezz.jei.gui.bookmarks.IBookmark}; item list, recipe screen and container slots do not) → otherwise break,
+ *   preserve default JEI behavior;
+ * - If that bookmark is a crafting recipe auto-craft can run → claim ownership during simulation (mouse press),
+ *   run recursive auto-craft on that exact bookmark during execution (mouse release), and consume the click.
  */
 @Mixin(value = FocusInputHandler.class, remap = false)
 public class MixinJeiFocusInputHandler {
@@ -42,9 +42,6 @@ public class MixinJeiFocusInputHandler {
 
 	@Inject(method = "handleClick", at = @At("HEAD"), cancellable = true, remap = false)
 	private void jeicrafter$tryAutoCraft(UserInput input, IInternalKeyMappings keyBindings, CallbackInfoReturnable<Optional<IUserInputHandler>> cir) {
-		// Print full diagnostic on every handleClick, for diagnosing "key not recognized / binding lost" issues
-		logInputDiagnostic(input, keyBindings);
-
 		// Designated key not held or not a left-click → break, let JEI handle it
 		if (!JeiCrafterKeys.isCraftKeyDown() || !input.is(keyBindings.getLeftClick())) {
 			return;
@@ -53,50 +50,27 @@ public class MixinJeiFocusInputHandler {
 		List<IClickableIngredientInternal<?>> ingredientsUnderMouse = this.focusSource.getIngredientUnderMouse(input, keyBindings).toList();
 		Constants.LOG.info("[AutoCraft] clicked candidate count={}", ingredientsUnderMouse.size());
 		for (IClickableIngredientInternal<?> clicked : ingredientsUnderMouse) {
-			Optional<ItemStack> clickedStack = clicked.getElement().getTypedIngredient().getIngredient(VanillaTypes.ITEM_STACK);
-			// Not bookmarked as a recipe bookmark → break, preserve default behavior
-			if (clickedStack.isEmpty() || !AutoCraftManager.isBookmarked(clickedStack.get())) {
-				Constants.LOG.info("[AutoCraft] candidate skip: hasStack={} bookmarked={}", clickedStack.isPresent(), clickedStack.map(AutoCraftManager::isBookmarked).orElse(false));
+			// Only bookmark bar elements carry a bookmark; item list, recipe screen and container slots do not.
+			// Require the click to be on a recipe bookmark element, so Z+left-click only triggers from the bookmark bar.
+			Optional<IBookmark> elementBookmark = clicked.getElement().getBookmark();
+			if (elementBookmark.isEmpty() || !(elementBookmark.get() instanceof RecipeBookmark<?, ?> recipeBookmark)) {
+				Constants.LOG.info("[AutoCraft] candidate skip: hasBookmark={} isRecipeBookmark=false", elementBookmark.isPresent());
+				continue;
+			}
+			// Category auto-craft cannot execute → break, preserve default behavior
+			if (!AutoCraftManager.isCraftable(recipeBookmark)) {
+				Constants.LOG.info("[AutoCraft] candidate skip: category={}", recipeBookmark.getRecipeCategory().getRecipeType());
 				continue;
 			}
 			if (!input.isSimulate()) {
-				// Mouse release: actually execute auto-craft
-				AutoCraftManager.tryCraft(clickedStack.get());
+				// Mouse release: actually execute auto-craft. Pass the bookmark itself — resolving it back from
+				// its output item would run the first bookmark with an equivalent output, not the clicked one.
+				AutoCraftManager.tryCraft(recipeBookmark);
 			}
 			// Claim ownership during simulation phase to ensure JEI won't process this click on release
 			Constants.LOG.info("[AutoCraft] consumed click, simulate={}", input.isSimulate());
 			cir.setReturnValue(Optional.of(new SameElementInputHandler((IUserInputHandler) (Object) this, clicked::isMouseOver)));
 			return;
 		}
-	}
-
-	/**
-	 * Full diagnostic of a click input and craft key binding state:
-	 * - input key type/value/phase (simulate=press, release=execute)/modifiers
-	 * - CRAFT key mapping's bound key, isDown state, whether the underlying GLFW physical key is actually held
-	 */
-	private static void logInputDiagnostic(UserInput input, IInternalKeyMappings keyBindings) {
-		InputConstants.Key inputKey = input.getKey();
-		InputConstants.Key bound = ((KeyMappingAccessor) JeiCrafterKeys.CRAFT).jeicrafter$getKey();
-		boolean rawHeld = bound.getType() == InputConstants.Type.KEYSYM
-			&& InputConstants.isKeyDown(Minecraft.getInstance().getWindow().getWindow(), bound.getValue());
-		boolean isLeft = input.is(keyBindings.getLeftClick());
-		boolean isRight = input.is(keyBindings.getRightClick());
-		Constants.LOG.info(
-			"[AutoCraft] DIAG input='{}'(type={},code={}) left={} right={} simulate={} mods=0x{} | craft.isDown={} rawHeld={} bound='{}'(code={}) save='{}' unbound={}",
-			inputKey.getDisplayName().getString(),
-			inputKey.getType(),
-			inputKey.getValue(),
-			isLeft,
-			isRight,
-			input.isSimulate(),
-			Integer.toHexString(input.getModifiers()),
-			JeiCrafterKeys.CRAFT.isDown(),
-			rawHeld,
-			bound.getDisplayName().getString(),
-			bound.getValue(),
-			JeiCrafterKeys.CRAFT.saveString(),
-			JeiCrafterKeys.CRAFT.isUnbound()
-		);
 	}
 }
