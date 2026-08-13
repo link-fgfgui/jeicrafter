@@ -44,7 +44,7 @@ public final class WorkstationScanner {
 				if (chunk == null) {
 					continue;
 				}
-				for (int sectionY = minSectionY; sectionY <= maxSectionY; sectionY++) {
+				for (int sectionY = minSectionY; sectionY < maxSectionY; sectionY++) {
 					LevelChunkSection section = chunk.getSection(chunk.getSectionIndexFromSectionY(sectionY));
 					if (section == null || section.hasOnlyAir()) {
 						continue;
@@ -88,7 +88,7 @@ public final class WorkstationScanner {
 				if (chunk == null) {
 					continue;
 				}
-				for (int sectionY = minSectionY; sectionY <= maxSectionY; sectionY++) {
+				for (int sectionY = minSectionY; sectionY < maxSectionY; sectionY++) {
 					LevelChunkSection section = chunk.getSection(chunk.getSectionIndexFromSectionY(sectionY));
 					if (section == null || section.hasOnlyAir()) {
 						continue;

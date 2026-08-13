@@ -43,24 +43,41 @@ public final class OutlineRenderer {
 		RenderSystem.enableBlend();
 		RenderSystem.defaultBlendFunc();
 		RenderSystem.setShader(GameRenderer::getPositionColorShader);
+		RenderSystem.lineWidth(5.0F);
 
 		Tesselator tesselator = Tesselator.getInstance();
 		BufferBuilder builder = tesselator.getBuilder();
-		builder.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR);
-		VertexConsumer consumer = builder;
 
+		// Translucent filled box first so the highlight is impossible to miss even at a distance
+		// or behind the dim JEI recipe screen. addChainedFilledBoxVertices emits a triangle strip
+		// (vanilla's debugFilledBox uses TRIANGLE_STRIP) - feeding it as QUADS splits each face
+		// into a single diagonal triangle.
+		builder.begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+		for (BlockPos pos : positions) {
+			LevelRenderer.addChainedFilledBoxVertices(
+				poseStack,
+				builder,
+				pos.getX(), pos.getY(), pos.getZ(),
+				pos.getX() + 1.0D, pos.getY() + 1.0D, pos.getZ() + 1.0D,
+				red, green, blue, alpha * 0.45F
+			);
+		}
+		tesselator.end();
+
+		// Crisp wireframe edges on top.
+		builder.begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR);
 		for (BlockPos pos : positions) {
 			LevelRenderer.renderLineBox(
 				poseStack,
-				consumer,
+				builder,
 				pos.getX(), pos.getY(), pos.getZ(),
 				pos.getX() + 1.0D, pos.getY() + 1.0D, pos.getZ() + 1.0D,
 				red, green, blue, alpha
 			);
 		}
-
 		tesselator.end();
 
+		RenderSystem.lineWidth(1.0F);
 		RenderSystem.disableBlend();
 		RenderSystem.enableDepthTest();
 	}

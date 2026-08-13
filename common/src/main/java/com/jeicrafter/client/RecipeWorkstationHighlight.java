@@ -90,6 +90,13 @@ public final class RecipeWorkstationHighlight {
 		if (workstationItem.isEmpty() || !JeiCrafterConfig.enableWorkstationHighlight()) {
 			return;
 		}
+		// A held key re-fires screen keyPressed on every OS key-repeat (~5/s), so the same trigger
+		// would otherwise wipe the highlight and spawn a new scan every 200ms while the key is held.
+		// Ignore re-triggers while a scan is in flight, or while the same workstation is already
+		// highlighted.
+		if (scanning || !positions.isEmpty() && workstation.is(workstationItem.getItem())) {
+			return;
+		}
 		Minecraft minecraft = Minecraft.getInstance();
 		ClientLevel level = minecraft.level;
 		if (level == null || minecraft.player == null) {
@@ -112,9 +119,9 @@ public final class RecipeWorkstationHighlight {
 		// Chunk data reads are safe off-thread; each position is only reported once.
 		new Thread(() -> {
 			try {
-				positions = Collections.unmodifiableSet(
-					WorkstationScanner.scanAll(chunkSource, playerChunkX, playerChunkZ, radiusChunks, minSectionY, maxSectionY, workstationItem)
-				);
+				Set<BlockPos> found = WorkstationScanner.scanAll(chunkSource, playerChunkX, playerChunkZ, radiusChunks, minSectionY, maxSectionY, workstationItem);
+				positions = Collections.unmodifiableSet(found);
+				Constants.LOG.info("[Highlight] scan complete: found {} workstation{} (={})", found.size(), found.size() == 1 ? "" : "s", found.isEmpty() ? "none" : found.iterator().next());
 			} catch (Throwable throwable) {
 				Constants.LOG.error("[Highlight] scan failed", throwable);
 			} finally {

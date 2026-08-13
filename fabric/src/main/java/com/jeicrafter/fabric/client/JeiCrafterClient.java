@@ -1,5 +1,6 @@
 package com.jeicrafter.fabric.client;
 
+import com.jeicrafter.Constants;
 import com.jeicrafter.client.JeiCrafterKeys;
 import com.jeicrafter.client.RecipeWorkstationHighlight;
 import com.jeicrafter.render.OutlineRenderer;
@@ -7,6 +8,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.world.InteractionResult;
 
 public class JeiCrafterClient implements ClientModInitializer {
 
@@ -34,6 +38,17 @@ public class JeiCrafterClient implements ClientModInitializer {
 				RecipeWorkstationHighlight.alpha()
 			);
 			poseStack.popPose();
+		});
+
+		// Right-clicking one of the highlighted workstation blocks dismisses the highlight.
+		UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+			if (player instanceof LocalPlayer
+				&& RecipeWorkstationHighlight.isActive()
+				&& RecipeWorkstationHighlight.positions().contains(hitResult.getBlockPos())) {
+				Constants.LOG.info("[Highlight] cancelled by right-click at {}", hitResult.getBlockPos());
+				RecipeWorkstationHighlight.clear();
+			}
+			return InteractionResult.PASS;
 		});
 	}
 }

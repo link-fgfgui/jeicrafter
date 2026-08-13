@@ -361,7 +361,7 @@ public final class WorkstationBookmarkAction implements BookmarkAction {
 		}
 
 		private static void log(String format, Object... args) {
-			Constants.LOG.info("[AutoCraft] workstation " + format, args);
+			Constants.LOG.info("[AutoCraft] workstation " + String.format(format, args));
 		}
 	}
 

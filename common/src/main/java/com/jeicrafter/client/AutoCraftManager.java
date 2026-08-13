@@ -646,7 +646,7 @@ public final class AutoCraftManager {
 	}
 
 	private static void log(String format, Object... args) {
-		Constants.LOG.info("[AutoCraft] " + format, args);
+		Constants.LOG.info("[AutoCraft] " + String.format(format, args));
 	}
 
 	private static String stackName(ItemStack stack) {

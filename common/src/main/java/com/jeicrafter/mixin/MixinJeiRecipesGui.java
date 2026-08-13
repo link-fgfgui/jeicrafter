@@ -15,15 +15,15 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Integrates the workstation-highlight feature into JEI's recipe screen.
  * <p>
  * Exposes the private {@link RecipesGui#logic} so the current recipe category (and its workstations)
- * can be read, intercepts the configured highlight key in {@link RecipesGui#keyPressed} to start the
- * scan, and clears the highlight when the recipe screen closes or JEI re-opens it.
+ * can be read, and intercepts the configured highlight key in {@link RecipesGui#keyPressed} to
+ * start the scan. The highlight stays up after the screen closes and is dismissed by right-clicking
+ * one of the highlighted blocks.
  * <p>
  * Only non-crafting categories trigger the highlight; the crafting category's workstation is a
  * crafting table, which is out of scope for this feature.
@@ -44,11 +44,6 @@ public abstract class MixinJeiRecipesGui {
 		if (jeicrafter$tryHighlight()) {
 			cir.setReturnValue(true);
 		}
-	}
-
-	@Inject(method = "onClose", at = @At("HEAD"), remap = false)
-	private void jeicrafter$clearHighlight(CallbackInfo ci) {
-		RecipeWorkstationHighlight.clear();
 	}
 
 	@Unique
