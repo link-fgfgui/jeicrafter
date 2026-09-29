@@ -15,6 +15,9 @@
     "icon": "assets/jeicrafter/${mod_id}.png",
     "environment": "client",
     "entrypoints": {
+        "main": [
+            "com.jeicrafter.JeiCrafter"
+        ],
         "client": [
             "com.jeicrafter.fabric.client.JeiCrafterClient"
         ],

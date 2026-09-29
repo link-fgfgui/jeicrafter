@@ -17,7 +17,9 @@ out
 # gradle
 build
 .gradle
+.tmp-gradle-home
 
 # other
 eclipse
 run
+.tmp-check

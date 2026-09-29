@@ -20,6 +20,7 @@ public final class BookmarkActionContext {
 	private final Object recipe;
 	private final IRecipeLayoutDrawable<?> recipeLayout;
 	private final ItemStack output;
+	private final RecipeStep step;
 
 	public BookmarkActionContext(
 		long sessionId,
@@ -32,15 +33,34 @@ public final class BookmarkActionContext {
 		IRecipeLayoutDrawable<?> recipeLayout,
 		ItemStack output
 	) {
+		this(
+			sessionId,
+			depth,
+			jeiRuntime,
+			player,
+			container,
+			new SimpleRecipeStep(recipeCategory, recipe, recipeLayout, output)
+		);
+	}
+
+	public BookmarkActionContext(
+		long sessionId,
+		int depth,
+		IJeiRuntime jeiRuntime,
+		LocalPlayer player,
+		AbstractContainerMenu container,
+		RecipeStep step
+	) {
 		this.sessionId = sessionId;
 		this.depth = depth;
 		this.jeiRuntime = Objects.requireNonNull(jeiRuntime, "jeiRuntime");
 		this.player = Objects.requireNonNull(player, "player");
 		this.container = Objects.requireNonNull(container, "container");
-		this.recipeCategory = Objects.requireNonNull(recipeCategory, "recipeCategory");
-		this.recipe = Objects.requireNonNull(recipe, "recipe");
-		this.recipeLayout = Objects.requireNonNull(recipeLayout, "recipeLayout");
-		this.output = output.copy();
+		this.step = Objects.requireNonNull(step, "step");
+		this.recipeCategory = step.recipeCategory();
+		this.recipe = step.recipe();
+		this.recipeLayout = step.recipeLayout();
+		this.output = step.output();
 	}
 
 	public long sessionId() {
@@ -77,5 +97,10 @@ public final class BookmarkActionContext {
 
 	public ItemStack output() {
 		return output.copy();
+	}
+
+	/** The recipe-graph step this action (or material analyzer) is operating on. */
+	public RecipeStep step() {
+		return step;
 	}
 }

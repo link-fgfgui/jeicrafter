@@ -11,7 +11,10 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -19,7 +22,8 @@ import java.util.Set;
  * <p>
  * Triggered from the JEI recipe screen via the designated highlight key. Scans every loaded
  * chunk within a configurable radius for blocks matching the current recipe category's
- * workstations (JEI "recipe catalysts"), and holds the result until the recipe screen closes.
+ * workstations (JEI "recipe catalysts" — all of them, not just the first), and holds the result
+ * until the recipe screen closes or a highlighted block is right-clicked.
  * <p>
  * The scan runs on a background thread: chunk sections are read-only here and the client chunk
  * cache's {@code getChunk(..., load=false)} never forces loads, so it is safe off-thread.
@@ -32,8 +36,17 @@ public final class RecipeWorkstationHighlight {
 	private static final float ALPHA = 0.9F;
 
 	private static volatile Set<BlockPos> positions = Collections.emptySet();
-	private static volatile ItemStack workstation = ItemStack.EMPTY;
+	private static volatile List<ItemStack> workstations = List.of();
 	private static volatile boolean scanning;
+
+	/**
+	 * Monotonic scan generation. Incremented on every {@link #clear()} and on every new
+	 * {@link #trigger(List, IRecipeCategory)}; a background scan only commits its result if its
+	 * captured generation still matches, so a scan started before a clear (or superseded by a
+	 * newer catalyst-set request) can never resurrect or overwrite the highlight, and no stale
+	 * thread clears another thread's in-flight flag.
+	 */
+	private static volatile long generation;
 
 	private RecipeWorkstationHighlight() {
 	}
@@ -43,9 +56,14 @@ public final class RecipeWorkstationHighlight {
 		return !positions.isEmpty() || scanning;
 	}
 
-	/** The workstation block item currently being highlighted (for the HUD tooltip). */
+	/** The first workstation block item currently being highlighted (for the HUD tooltip). */
 	public static ItemStack workstation() {
-		return workstation;
+		for (ItemStack item : workstations) {
+			if (!item.isEmpty()) {
+				return item;
+			}
+		}
+		return ItemStack.EMPTY;
 	}
 
 	public static Set<BlockPos> positions() {
@@ -73,28 +91,31 @@ public final class RecipeWorkstationHighlight {
 	 * on world unload, or when JEI runtime becomes unavailable.
 	 */
 	public static void clear() {
+		generation++;
 		positions = Collections.emptySet();
-		workstation = ItemStack.EMPTY;
+		workstations = List.of();
 		scanning = false;
 	}
 
 	/**
-	 * Starts an asynchronous scan for the given workstation item. Ignores empty items and
-	 * requests when the feature is disabled.
+	 * Starts an asynchronous scan for the given workstation items (all recipe catalysts).
+	 * Ignores empty lists and requests when the feature is disabled.
 	 * <p>
 	 * Minecraft's client thread-safety rules forbid touching {@link Minecraft} from another thread,
 	 * so the {@link ClientLevel}, chunk source and player position are captured here on the caller
 	 * (render) thread before the scan thread starts. Only chunk data reads happen off-thread.
 	 */
-	public static void trigger(ItemStack workstationItem, IRecipeCategory<?> category) {
-		if (workstationItem.isEmpty() || !JeiCrafterConfig.enableWorkstationHighlight()) {
+	public static void trigger(List<ItemStack> workstationItems, IRecipeCategory<?> category) {
+		List<ItemStack> items = workstationItems.stream().filter(stack -> !stack.isEmpty()).toList();
+		if (items.isEmpty() || !JeiCrafterConfig.enableWorkstationHighlight()) {
 			return;
 		}
-		// A held key re-fires screen keyPressed on every OS key-repeat (~5/s), so the same trigger
-		// would otherwise wipe the highlight and spawn a new scan every 200ms while the key is held.
-		// Ignore re-triggers while a scan is in flight, or while the same workstation is already
-		// highlighted.
-		if (scanning || !positions.isEmpty() && workstation.is(workstationItem.getItem())) {
+		// A held key re-fires screen keyPressed on every OS key-repeat (~5/s), so repeat triggers
+		// for the SAME catalyst set (already highlighted or still scanning) are ignored: starting
+		// a fresh scan for them every 200ms would wipe the highlight and spawn scan floods.
+		// A DIFFERENT catalyst set always supersedes the in-flight scan — its generation bump
+		// discards any stale result and keeps the older thread from clearing the new flag.
+		if (sameCatalysts(workstations, items) && (scanning || !positions.isEmpty())) {
 			return;
 		}
 		Minecraft minecraft = Minecraft.getInstance();
@@ -102,10 +123,12 @@ public final class RecipeWorkstationHighlight {
 		if (level == null || minecraft.player == null) {
 			return;
 		}
-		workstation = workstationItem.copy();
+		workstations = List.copyOf(items);
 		scanning = true;
 		positions = Collections.emptySet();
-		Constants.LOG.info("[Highlight] scanning for workstation={} category={}", workstationItem.getHoverName().getString(), category.getRecipeType());
+		// Bump so this scan supersedes any in-flight scan for a different catalyst set.
+		final long scanGeneration = ++generation;
+		Constants.LOG.info("[Highlight] scanning for {} workstation(s) category={}", items.size(), category.getRecipeType());
 
 		ClientChunkCache chunkSource = level.getChunkSource();
 		Vec3 playerPos = minecraft.player.position();
@@ -119,14 +142,49 @@ public final class RecipeWorkstationHighlight {
 		// Chunk data reads are safe off-thread; each position is only reported once.
 		new Thread(() -> {
 			try {
-				Set<BlockPos> found = WorkstationScanner.scanAll(chunkSource, playerChunkX, playerChunkZ, radiusChunks, minSectionY, maxSectionY, workstationItem);
-				positions = Collections.unmodifiableSet(found);
-				Constants.LOG.info("[Highlight] scan complete: found {} workstation{} (={})", found.size(), found.size() == 1 ? "" : "s", found.isEmpty() ? "none" : found.iterator().next());
+				Set<BlockPos> found = new HashSet<>();
+				for (ItemStack item : items) {
+					found.addAll(WorkstationScanner.scanAll(chunkSource, playerChunkX, playerChunkZ, radiusChunks, minSectionY, maxSectionY, item));
+				}
+				// Only commit if no clear() (or a newer scan) has invalidated this generation.
+				if (scanGeneration == generation && sameCatalysts(workstations, items)) {
+					positions = Collections.unmodifiableSet(found);
+					Constants.LOG.info("[Highlight] scan complete: found {} workstation{} (={})", found.size(), found.size() == 1 ? "" : "s", found.isEmpty() ? "none" : found.iterator().next());
+				}
 			} catch (Throwable throwable) {
 				Constants.LOG.error("[Highlight] scan failed", throwable);
 			} finally {
-				scanning = false;
+				// Only this generation may clear the in-flight flag; a newer scan owns it now.
+				if (scanGeneration == generation) {
+					scanning = false;
+				}
 			}
 		}, "jeicrafter-workstation-scan").start();
+	}
+
+	/** Whether two catalyst item lists cover the same blocks (item identity, ignoring NBT/count). */
+	private static boolean sameCatalysts(List<ItemStack> a, List<ItemStack> b) {
+		if (a.size() != b.size()) {
+			return false;
+		}
+		List<ItemStack> remaining = new ArrayList<>(b);
+		for (ItemStack item : a) {
+			if (item.isEmpty()) {
+				continue;
+			}
+			boolean matched = false;
+			for (int i = 0; i < remaining.size(); i++) {
+				ItemStack other = remaining.get(i);
+				if (!other.isEmpty() && item.is(other.getItem())) {
+					remaining.remove(i);
+					matched = true;
+					break;
+				}
+			}
+			if (!matched) {
+				return false;
+			}
+		}
+		return true;
 	}
 }

@@ -21,11 +21,13 @@ public final class JeiCrafterConfig {
 	private static final String FILE_NAME = Constants.MOD_ID + ".json";
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
+	/** Default search radius for auto-opening a workstation: the vanilla server's block interaction limit (6.0 from the eye). */
+	public static final double DEFAULT_WORKSTATION_MAX_DISTANCE = 6.0D;
+
 	private static boolean enableWorkstationHighlight = true;
 	private static boolean autoOpenWorkstation = true;
 	private static boolean autoTransferItems = true;
-	private static boolean autoCloseWorkstation = true;
-	private static int workstationMaxDistance = 64;
+	private static double workstationMaxDistance = DEFAULT_WORKSTATION_MAX_DISTANCE;
 
 	private JeiCrafterConfig() {
 	}
@@ -39,8 +41,7 @@ public final class JeiCrafterConfig {
 				enableWorkstationHighlight = getBoolean(json, "enableWorkstationHighlight", enableWorkstationHighlight);
 				autoOpenWorkstation = getBoolean(json, "autoOpenWorkstation", autoOpenWorkstation);
 				autoTransferItems = getBoolean(json, "autoTransferItems", autoTransferItems);
-				autoCloseWorkstation = getBoolean(json, "autoCloseWorkstation", autoCloseWorkstation);
-				workstationMaxDistance = getInt(json, "workstationMaxDistance", workstationMaxDistance);
+				workstationMaxDistance = getDouble(json, "workstationMaxDistance", workstationMaxDistance);
 			} catch (Exception exception) {
 				Constants.LOG.error("[JeiCrafter] Failed to read config file {}", configFile, exception);
 			}
@@ -59,7 +60,6 @@ public final class JeiCrafterConfig {
 				json.addProperty("enableWorkstationHighlight", enableWorkstationHighlight);
 				json.addProperty("autoOpenWorkstation", autoOpenWorkstation);
 				json.addProperty("autoTransferItems", autoTransferItems);
-				json.addProperty("autoCloseWorkstation", autoCloseWorkstation);
 				json.addProperty("workstationMaxDistance", workstationMaxDistance);
 				GSON.toJson(json, writer);
 			}
@@ -78,18 +78,22 @@ public final class JeiCrafterConfig {
 		return autoOpenWorkstation;
 	}
 
-	/** Whether auto-craft should transfer the recipe's required items into the workstation. */
+	/**
+	 * Whether the workstation action should insert the recipe's required items: when the
+	 * workstation is opened for the player (the not-open branch) and when a workstation is
+	 * already open / a valid transfer handler exists. With this disabled the action only opens
+	 * (or acknowledges) the workstation and stops without inserting anything.
+	 */
 	public static boolean autoTransferItems() {
 		return autoTransferItems;
 	}
 
-	/** Whether auto-craft should close the workstation GUI after extracting the output. */
-	public static boolean autoCloseWorkstation() {
-		return autoCloseWorkstation;
-	}
-
-	/** Max distance to search for a matching workstation when auto-opening one. */
-	public static int workstationMaxDistance() {
+	/**
+	 * Max distance (blocks) to search for a matching workstation when auto-opening one.
+	 * Defaults to the vanilla server's block interaction limit; anything beyond it can never
+	 * be opened by the server, so raising the value only widens a useless search.
+	 */
+	public static double workstationMaxDistance() {
 		return workstationMaxDistance;
 	}
 
@@ -97,7 +101,7 @@ public final class JeiCrafterConfig {
 		return json.has(key) ? json.get(key).getAsBoolean() : defaultValue;
 	}
 
-	private static int getInt(JsonObject json, String key, int defaultValue) {
-		return json.has(key) ? json.get(key).getAsInt() : defaultValue;
+	private static double getDouble(JsonObject json, String key, double defaultValue) {
+		return json.has(key) ? json.get(key).getAsDouble() : defaultValue;
 	}
 }

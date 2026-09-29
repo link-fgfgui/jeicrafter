@@ -17,6 +17,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.List;
+
 /**
  * Integrates the workstation-highlight feature into JEI's recipe screen.
  * <p>
@@ -54,16 +56,15 @@ public abstract class MixinJeiRecipesGui {
 			// workstation-based (non-crafting) recipes only.
 			return false;
 		}
-		ItemStack workstation = logic.getRecipeCatalysts(category)
+		List<ItemStack> workstations = logic.getRecipeCatalysts(category)
 			.map(ITypedIngredient::getIngredient)
 			.filter(ItemStack.class::isInstance)
 			.map(ItemStack.class::cast)
-			.findFirst()
-			.orElse(ItemStack.EMPTY);
-		if (workstation.isEmpty()) {
+			.toList();
+		if (workstations.isEmpty()) {
 			return false;
 		}
-		RecipeWorkstationHighlight.trigger(workstation, category);
+		RecipeWorkstationHighlight.trigger(workstations, category);
 		return true;
 	}
 }

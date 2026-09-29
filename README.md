@@ -7,10 +7,14 @@ A pure-client mod that turns JEI bookmarks into a one-click crafting pipeline.
 - **Auto-craft bookmarked recipes** — hold **Z** and click a recipe bookmark to auto-detect
   materials, recursively craft missing bookmarked materials, and complete the crafting.
 - **Workstation recipes (non-crafting)** — recipes that need a workstation (smelting, blasting,
-  smoking, brewing, …) are executed by automatically opening the **nearest matching workstation**
-  block in the loaded world, transferring the recipe's required inputs (and fuel for furnace-family
-  menus) into it, and extracting the output when it finishes. Both the "open workstation" and
-  "transfer items" steps can be disabled in the config.
+  smoking, brewing, …) read **all** of the recipe's catalyst blocks. When the corresponding
+  workstation is **already open** (its GUI belongs to one of those blocks) or the open container
+  has a **valid JEI recipe transfer handler**, the action inserts the required inputs into the
+  workstation and then stops (insert-and-stop: it never waits for the machine to produce and
+  never extracts the output), handing control back to the player. Otherwise it opens the
+  **nearest matching workstation** block in the loaded world (within the player's interaction
+  reach) and then runs the same step — whether the newly opened workstation is auto-filled is
+  decided by `autoTransferItems`.
 - **Highlight recipe workstations** — on a non-crafting JEI recipe page, press **H** to highlight
   every workstation block for the current recipe across the loaded world.
 
@@ -22,15 +26,19 @@ features:
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `enableWorkstationHighlight` | `true` | Enable the recipe-workstation highlight (H key). |
-| `autoOpenWorkstation` | `true` | Auto-craft opens the nearest matching workstation GUI. |
-| `autoTransferItems` | `true` | Auto-craft transfers the recipe's required items into the workstation. |
-| `autoCloseWorkstation` | `true` | Auto-craft closes the workstation GUI after extracting the output. |
-| `workstationMaxDistance` | `64` | Max distance (blocks) to search for a workstation to open. |
+| `autoOpenWorkstation` | `true` | When the workstation is not already open (and no valid transfer handler applies), auto-craft opens the nearest matching workstation GUI. |
+| `autoTransferItems` | `true` | Whether the workstation is auto-filled after opening (or when it is already open / a valid transfer handler applies). When disabled the action only opens/acknowledges the workstation and stops without inserting anything. |
+| `workstationMaxDistance` | `6` | Max distance (blocks) to search for a workstation to open. Defaults to the vanilla server's block interaction limit; farther can never be opened. |
 
 ## API
 
-Third-party mods can reuse the bookmark dependency resolver and provide actions for their own JEI
-recipe types. See [the bookmark action API](docs/action-api.md).
+Third-party mods can:
+
+- provide actions for their own JEI recipe types
+- decide whether a recipe's materials are already available (inventory, storage network, …)
+- replace the built-in JEI-bookmark recipe tree with their own planner
+
+See [the bookmark action API](docs/action-api.md).
 
 ## License
 

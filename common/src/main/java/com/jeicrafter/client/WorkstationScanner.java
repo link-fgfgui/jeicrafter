@@ -61,19 +61,25 @@ public final class WorkstationScanner {
 	 * {@code workstationItem} and is within {@code maxRadius} of the player, or null if none.
 	 * <p>
 	 * Must be called on the client thread (it reads {@link Minecraft} state directly).
+	 * <p>
+	 * The caller supplies the search radius (from the config). Going beyond the vanilla
+	 * server's interaction limit is pointless: the caller opens the workstation by
+	 * right-clicking it, and the server validates that interaction against reach, so
+	 * anything farther could never be opened anyway.
 	 */
-	public static BlockPos findNearest(ItemStack workstationItem, int maxRadius) {
+	public static BlockPos findNearest(ItemStack workstationItem, double maxRadius) {
 		Minecraft minecraft = Minecraft.getInstance();
 		ClientLevel level = minecraft.level;
 		if (level == null || minecraft.player == null || workstationItem.isEmpty()) {
 			return null;
 		}
 		ClientChunkCache chunkSource = level.getChunkSource();
-		Vec3 playerPos = minecraft.player.position();
-		int radiusChunks = (maxRadius >> 4) + 1;
+		// Match the server's interaction check: distance from the EYE position to the block's center.
+		Vec3 playerPos = minecraft.player.getEyePosition();
+		int radiusChunks = (int) (maxRadius / 16.0) + 1;
 		int playerChunkX = SectionPos.blockToSectionCoord(playerPos.x);
 		int playerChunkZ = SectionPos.blockToSectionCoord(playerPos.z);
-		long radiusSquared = (long) maxRadius * maxRadius;
+		double radiusSquared = maxRadius * maxRadius;
 
 		int minSectionY = level.getMinSection();
 		int maxSectionY = level.getMaxSection();
@@ -139,7 +145,7 @@ public final class WorkstationScanner {
 		int sectionY,
 		ItemStack workstationItem,
 		Vec3 playerPos,
-		long radiusSquared
+		double radiusSquared
 	) {
 		int baseX = SectionPos.sectionToBlockCoord(chunkX);
 		int baseZ = SectionPos.sectionToBlockCoord(chunkZ);
