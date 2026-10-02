@@ -14,5 +14,6 @@ public final class ForgeClientEvents {
 	public static void registerKeyMappings(RegisterKeyMappingsEvent event) {
 		event.register(JeiCrafterKeys.CRAFT);
 		event.register(JeiCrafterKeys.HIGHLIGHT_WORKSTATION);
+		event.register(JeiCrafterKeys.SORT_BOOKMARKS);
 	}
 }

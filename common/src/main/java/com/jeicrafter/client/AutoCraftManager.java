@@ -19,11 +19,13 @@ import mezz.jei.gui.bookmarks.RecipeBookmark;
 import mezz.jei.library.plugins.jei.tags.ITagInfoRecipe;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.CraftingMenu;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayDeque;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -59,6 +62,10 @@ public final class AutoCraftManager {
 	private static final List<RecipeGraph> GRAPHS = new CopyOnWriteArrayList<>();
 	private static final List<MaterialAnalyzer> ANALYZERS = new CopyOnWriteArrayList<>();
 
+	private static final long BOOKMARK_CACHE_TTL_MS = 500L;
+	private static volatile long lastBookmarkCacheTime = 0;
+	private static final Map<ItemStackKey, Boolean> BOOKMARK_CACHE = new ConcurrentHashMap<>();
+
 	/** Runtime injected by the JEI plugin via {@code onRuntimeAvailable}. */
 	private static volatile IJeiRuntime runtime;
 	private static Session session;
@@ -73,12 +80,17 @@ public final class AutoCraftManager {
 		if (!ACTIONS.contains(action)) {
 			ACTIONS.add(action);
 			ACTIONS.sort(Comparator.comparingInt(BookmarkAction::priority).reversed());
+			BOOKMARK_CACHE.clear();
 		}
 	}
 
 	/** Implementation backing {@link com.jeicrafter.api.JeiCrafterApi#unregisterAction(BookmarkAction)}. */
 	public static boolean unregisterAction(BookmarkAction action) {
-		return ACTIONS.remove(action);
+		boolean removed = ACTIONS.remove(action);
+		if (removed) {
+			BOOKMARK_CACHE.clear();
+		}
+		return removed;
 	}
 
 	/** Implementation backing {@link com.jeicrafter.api.JeiCrafterApi#registerRecipeGraph(RecipeGraph)}. */
@@ -86,12 +98,17 @@ public final class AutoCraftManager {
 		if (!GRAPHS.contains(graph)) {
 			GRAPHS.add(graph);
 			GRAPHS.sort(Comparator.comparingInt(RecipeGraph::priority).reversed());
+			BOOKMARK_CACHE.clear();
 		}
 	}
 
 	/** Implementation backing {@link com.jeicrafter.api.JeiCrafterApi#unregisterRecipeGraph(RecipeGraph)}. */
 	public static boolean unregisterRecipeGraph(RecipeGraph graph) {
-		return GRAPHS.remove(graph);
+		boolean removed = GRAPHS.remove(graph);
+		if (removed) {
+			BOOKMARK_CACHE.clear();
+		}
+		return removed;
 	}
 
 	/** Implementation backing {@link com.jeicrafter.api.JeiCrafterApi#registerMaterialAnalyzer(MaterialAnalyzer)}. */
@@ -99,12 +116,17 @@ public final class AutoCraftManager {
 		if (!ANALYZERS.contains(analyzer)) {
 			ANALYZERS.add(analyzer);
 			ANALYZERS.sort(Comparator.comparingInt(MaterialAnalyzer::priority).reversed());
+			BOOKMARK_CACHE.clear();
 		}
 	}
 
 	/** Implementation backing {@link com.jeicrafter.api.JeiCrafterApi#unregisterMaterialAnalyzer(MaterialAnalyzer)}. */
 	public static boolean unregisterMaterialAnalyzer(MaterialAnalyzer analyzer) {
-		return ANALYZERS.remove(analyzer);
+		boolean removed = ANALYZERS.remove(analyzer);
+		if (removed) {
+			BOOKMARK_CACHE.clear();
+		}
+		return removed;
 	}
 
 	public static RecipeGraph builtinRecipeGraph() {
@@ -236,10 +258,26 @@ public final class AutoCraftManager {
 
 	/**
 	 * Whether any registered recipe graph can produce the target (used to colour missing JEI
-	 * transfer slots that a graph can craft).
+	 * transfer slots that a graph can craft). Results are cached for 500ms to eliminate per-frame
+	 * recipe resolution overhead during tooltip rendering.
 	 */
 	public static boolean isBookmarked(ItemStack target) {
-		return resolveRoot(RecipeRequest.forItem(target)) != null;
+		if (target.isEmpty()) {
+			return false;
+		}
+		long now = System.currentTimeMillis();
+		if (now - lastBookmarkCacheTime > BOOKMARK_CACHE_TTL_MS) {
+			BOOKMARK_CACHE.clear();
+			lastBookmarkCacheTime = now;
+		}
+		ItemStackKey key = new ItemStackKey(target);
+		Boolean cached = BOOKMARK_CACHE.get(key);
+		if (cached != null) {
+			return cached;
+		}
+		boolean result = resolveRoot(RecipeRequest.forItem(target)) != null;
+		BOOKMARK_CACHE.put(key, result);
+		return result;
 	}
 
 	public static boolean isRunnable(ItemStack target) {
@@ -562,7 +600,7 @@ public final class AutoCraftManager {
 		return stack.isEmpty() ? "empty" : stack.getHoverName().getString() + " x" + stack.getCount();
 	}
 
-	private static IJeiRuntime runtime() {
+	public static IJeiRuntime runtime() {
 		return runtime;
 	}
 
@@ -619,6 +657,12 @@ public final class AutoCraftManager {
 				Constants.LOG.error("[AutoCraft] session={} graph threw from child resolve", session.id, exception);
 				return Optional.empty();
 			}
+		}
+	}
+
+	private record ItemStackKey(Item item, CompoundTag tag) {
+		private ItemStackKey(ItemStack stack) {
+			this(stack.getItem(), stack.hasTag() ? stack.getTag() : null);
 		}
 	}
 

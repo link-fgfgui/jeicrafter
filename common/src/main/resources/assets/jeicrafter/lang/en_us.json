@@ -2,6 +2,7 @@
   "key.categories.jeicrafter": "JEI Crafter",
   "key.jeicrafter.craft": "Auto Craft",
   "key.jeicrafter.highlight_workstation": "Highlight Recipe Workstations",
+  "key.jeicrafter.sort_bookmarks": "Sort Bookmarks",
   "jeicrafter.message.need_crafting_table": "Open a crafting table to auto-craft.",
   "jeicrafter.message.not_crafting_recipe": "The bookmarked recipe is not a crafting recipe.",
   "jeicrafter.message.missing_material": "Cannot auto-craft: %1$s requires %2$s, but %2$s has no bookmarked recipe.",

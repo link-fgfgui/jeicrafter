@@ -2,7 +2,12 @@ package com.jeicrafter.client;
 
 import com.jeicrafter.Constants;
 import com.jeicrafter.config.JeiCrafterConfig;
+import com.jeicrafter.mixin.MixinJeiRecipesGui;
+import mezz.jei.api.constants.RecipeTypes;
+import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.recipe.category.IRecipeCategory;
+import mezz.jei.gui.recipes.IRecipeGuiLogic;
+import mezz.jei.gui.recipes.RecipesGui;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientChunkCache;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -95,6 +100,42 @@ public final class RecipeWorkstationHighlight {
 		positions = Collections.emptySet();
 		workstations = List.of();
 		scanning = false;
+	}
+
+	/**
+	 * Extracts workstation catalysts from JEI's active recipe category and triggers the highlight scan.
+	 * Returns true if the key event was consumed (valid non-crafting workstation category found).
+	 */
+	public static boolean tryHighlight(RecipesGui recipesGui) {
+		if (!JeiCrafterConfig.enableWorkstationHighlight() || !(recipesGui instanceof MixinJeiRecipesGui accessor)) {
+			return false;
+		}
+		IRecipeGuiLogic logic = accessor.jeicrafter$getLogic();
+		if (logic == null) {
+			return false;
+		}
+		IRecipeCategory<?> category = logic.getSelectedRecipeCategory();
+		if (category == null || RecipeTypes.CRAFTING.equals(category.getRecipeType())) {
+			return false;
+		}
+		List<ItemStack> workstations = logic.getRecipeCatalysts(category)
+			.map(ITypedIngredient::getIngredient)
+			.filter(ItemStack.class::isInstance)
+			.map(ItemStack.class::cast)
+			.toList();
+		if (workstations.isEmpty()) {
+			return false;
+		}
+		trigger(workstations, category);
+		if (JeiCrafterConfig.closeGuiOnWorkstationHighlight()) {
+			Minecraft minecraft = Minecraft.getInstance();
+			if (minecraft.player != null) {
+				minecraft.player.closeContainer();
+			} else {
+				minecraft.setScreen(null);
+			}
+		}
+		return true;
 	}
 
 	/**

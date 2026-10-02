@@ -1,12 +1,16 @@
 package com.jeicrafter.forge.client;
 
 import com.jeicrafter.Constants;
+import com.jeicrafter.client.BookmarkSortManager;
 import com.jeicrafter.client.RecipeWorkstationHighlight;
 import com.jeicrafter.render.OutlineRenderer;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.jeicrafter.client.JeiCrafterKeys;
+import mezz.jei.gui.recipes.RecipesGui;
 import net.minecraft.core.BlockPos;
 import net.minecraftforge.client.event.RenderLevelStageEvent;
+import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.LogicalSide;
 
@@ -26,6 +30,25 @@ public final class ForgeGameEvents {
 	private static int lastLoggedRenderTick;
 
 	private ForgeGameEvents() {
+	}
+
+	/**
+	 * Intercepts key presses when screens are active (e.g. F5 to sort bookmarks, H to highlight workstations).
+	 */
+	public static void onScreenKeyPressed(ScreenEvent.KeyPressed.Pre event) {
+		if (JeiCrafterKeys.isSortKey(event.getKeyCode(), event.getScanCode())) {
+			if (BookmarkSortManager.trySortBookmarks()) {
+				event.setCanceled(true);
+				return;
+			}
+		}
+		if (event.getScreen() instanceof RecipesGui recipesGui) {
+			if (JeiCrafterKeys.isHighlightKey(event.getKeyCode(), event.getScanCode())) {
+				if (RecipeWorkstationHighlight.tryHighlight(recipesGui)) {
+					event.setCanceled(true);
+				}
+			}
+		}
 	}
 
 	/**
@@ -73,6 +96,7 @@ public final class ForgeGameEvents {
 		RenderSystem.applyModelViewMatrix();
 		OutlineRenderer.renderOutlines(
 			poseStack,
+			camera,
 			positions,
 			RecipeWorkstationHighlight.red(),
 			RecipeWorkstationHighlight.green(),

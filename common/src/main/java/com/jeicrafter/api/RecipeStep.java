@@ -3,6 +3,7 @@ package com.jeicrafter.api;
 import mezz.jei.api.gui.IRecipeLayoutDrawable;
 import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
 
 import java.util.Objects;
 
@@ -31,26 +32,27 @@ public interface RecipeStep {
 		return new Identity(recipeCategory(), recipe());
 	}
 
-	/** Value identity: recipe type plus the recipe instance (reference equality). */
+	/** Value identity: recipe type plus the recipe key/instance. */
 	final class Identity {
 		private final Object recipeType;
-		private final Object recipe;
+		private final Object recipeKey;
 
 		public Identity(IRecipeCategory<?> recipeCategory, Object recipe) {
 			this.recipeType = Objects.requireNonNull(recipeCategory, "recipeCategory").getRecipeType();
-			this.recipe = Objects.requireNonNull(recipe, "recipe");
+			Objects.requireNonNull(recipe, "recipe");
+			this.recipeKey = recipe instanceof Recipe<?> mcRecipe ? mcRecipe.getId() : recipe;
 		}
 
 		@Override
 		public boolean equals(Object other) {
 			return other instanceof Identity identity
 				&& Objects.equals(recipeType, identity.recipeType)
-				&& recipe == identity.recipe;
+				&& Objects.equals(recipeKey, identity.recipeKey);
 		}
 
 		@Override
 		public int hashCode() {
-			return Objects.hash(recipeType, System.identityHashCode(recipe));
+			return Objects.hash(recipeType, recipeKey);
 		}
 	}
 }

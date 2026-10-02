@@ -25,6 +25,7 @@ public class JeiCrafter {
         if (FMLLoader.getDist() == Dist.CLIENT) {
             MinecraftForge.EVENT_BUS.addListener(ForgeGameEvents::renderWorkstationHighlight);
             MinecraftForge.EVENT_BUS.addListener(ForgeGameEvents::onRightClickBlock);
+            MinecraftForge.EVENT_BUS.addListener(ForgeGameEvents::onScreenKeyPressed);
         }
 
     }

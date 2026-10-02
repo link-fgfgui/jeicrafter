@@ -2,6 +2,7 @@
   "key.categories.jeicrafter": "JEI Crafter",
   "key.jeicrafter.craft": "自动合成",
   "key.jeicrafter.highlight_workstation": "高亮配方工作方块",
+  "key.jeicrafter.sort_bookmarks": "排序书签",
   "jeicrafter.message.need_crafting_table": "自动合成需要先打开合成台。",
   "jeicrafter.message.not_crafting_recipe": "该书签配方不是合成配方。",
   "jeicrafter.message.missing_material": "无法自动合成: %1$s 需要 %2$s,但没有 %2$s 的书签配方。",

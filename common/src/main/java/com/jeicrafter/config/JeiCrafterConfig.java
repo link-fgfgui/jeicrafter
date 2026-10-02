@@ -23,11 +23,14 @@ public final class JeiCrafterConfig {
 
 	/** Default search radius for auto-opening a workstation: the vanilla server's block interaction limit (6.0 from the eye). */
 	public static final double DEFAULT_WORKSTATION_MAX_DISTANCE = 6.0D;
+	public static final double DEFAULT_MIN_HIGHLIGHT_DISTANCE = 16.0D;
 
 	private static boolean enableWorkstationHighlight = true;
+	private static boolean closeGuiOnWorkstationHighlight = true;
 	private static boolean autoOpenWorkstation = true;
 	private static boolean autoTransferItems = true;
 	private static double workstationMaxDistance = DEFAULT_WORKSTATION_MAX_DISTANCE;
+	private static double minHighlightDistance = DEFAULT_MIN_HIGHLIGHT_DISTANCE;
 
 	private JeiCrafterConfig() {
 	}
@@ -39,9 +42,11 @@ public final class JeiCrafterConfig {
 			try (Reader reader = Files.newBufferedReader(configFile)) {
 				JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
 				enableWorkstationHighlight = getBoolean(json, "enableWorkstationHighlight", enableWorkstationHighlight);
+				closeGuiOnWorkstationHighlight = getBoolean(json, "closeGuiOnWorkstationHighlight", closeGuiOnWorkstationHighlight);
 				autoOpenWorkstation = getBoolean(json, "autoOpenWorkstation", autoOpenWorkstation);
 				autoTransferItems = getBoolean(json, "autoTransferItems", autoTransferItems);
 				workstationMaxDistance = getDouble(json, "workstationMaxDistance", workstationMaxDistance);
+				minHighlightDistance = getDouble(json, "minHighlightDistance", minHighlightDistance);
 			} catch (Exception exception) {
 				Constants.LOG.error("[JeiCrafter] Failed to read config file {}", configFile, exception);
 			}
@@ -58,9 +63,11 @@ public final class JeiCrafterConfig {
 			try (Writer writer = Files.newBufferedWriter(configFile)) {
 				JsonObject json = new JsonObject();
 				json.addProperty("enableWorkstationHighlight", enableWorkstationHighlight);
+				json.addProperty("closeGuiOnWorkstationHighlight", closeGuiOnWorkstationHighlight);
 				json.addProperty("autoOpenWorkstation", autoOpenWorkstation);
 				json.addProperty("autoTransferItems", autoTransferItems);
 				json.addProperty("workstationMaxDistance", workstationMaxDistance);
+				json.addProperty("minHighlightDistance", minHighlightDistance);
 				GSON.toJson(json, writer);
 			}
 		} catch (IOException exception) {
@@ -71,6 +78,11 @@ public final class JeiCrafterConfig {
 	/** Whether the recipe-workstation highlight feature is enabled. */
 	public static boolean enableWorkstationHighlight() {
 		return enableWorkstationHighlight;
+	}
+
+	/** Whether triggering workstation highlight automatically closes the recipe GUI. */
+	public static boolean closeGuiOnWorkstationHighlight() {
+		return closeGuiOnWorkstationHighlight;
 	}
 
 	/** Whether auto-craft should automatically open the nearest matching workstation GUI. */
@@ -95,6 +107,15 @@ public final class JeiCrafterConfig {
 	 */
 	public static double workstationMaxDistance() {
 		return workstationMaxDistance;
+	}
+
+	/**
+	 * Reference distance (in blocks) at which a 1x1 block's apparent screen size becomes the
+	 * minimum allowed highlight size. Beyond this distance, highlights scale up proportionally
+	 * with distance so they never appear smaller on screen. Set to 0 to disable scaling.
+	 */
+	public static double minHighlightDistance() {
+		return minHighlightDistance;
 	}
 
 	private static boolean getBoolean(JsonObject json, String key, boolean defaultValue) {

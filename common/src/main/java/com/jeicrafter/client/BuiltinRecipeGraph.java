@@ -65,7 +65,7 @@ final class BuiltinRecipeGraph implements RecipeGraph {
 		return findRunnableStep(request.target(), runtime, player);
 	}
 
-	static ItemStack outputOf(RecipeBookmark<?, ?> bookmark, IJeiRuntime runtime) {
+	public static ItemStack outputOf(RecipeBookmark<?, ?> bookmark, IJeiRuntime runtime) {
 		Optional<ItemStack> bookmarkOutput = bookmark.getRecipeOutput().getIngredient(VanillaTypes.ITEM_STACK);
 		if (bookmarkOutput.isPresent()) {
 			return bookmarkOutput.get().copy();

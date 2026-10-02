@@ -34,6 +34,17 @@ public final class JeiCrafterKeys {
 		"key.categories.jeicrafter"
 	);
 
+	/**
+	 * On a screen with JEI bookmarks visible, pressing this key while hovering over the bookmark overlay
+	 * reorders bookmarks: grouping same items together and sorting recipe chains by dependency.
+	 */
+	public static final KeyMapping SORT_BOOKMARKS = new KeyMapping(
+		"key.jeicrafter.sort_bookmarks",
+		InputConstants.Type.KEYSYM,
+		GLFW.GLFW_KEY_F5,
+		"key.categories.jeicrafter"
+	);
+
 	private JeiCrafterKeys() {
 	}
 
@@ -66,6 +77,15 @@ public final class JeiCrafterKeys {
 	 */
 	public static boolean isHighlightKey(int keyCode, int scanCode) {
 		InputConstants.Key bound = ((KeyMappingAccessor) HIGHLIGHT_WORKSTATION).jeicrafter$getKey();
+		InputConstants.Key pressed = InputConstants.getKey(keyCode, scanCode);
+		return bound.equals(pressed);
+	}
+
+	/**
+	 * Returns whether the given GLFW key press corresponds to the configured bookmark sort key.
+	 */
+	public static boolean isSortKey(int keyCode, int scanCode) {
+		InputConstants.Key bound = ((KeyMappingAccessor) SORT_BOOKMARKS).jeicrafter$getKey();
 		InputConstants.Key pressed = InputConstants.getKey(keyCode, scanCode);
 		return bound.equals(pressed);
 	}

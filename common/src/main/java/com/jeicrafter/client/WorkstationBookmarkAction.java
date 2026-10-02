@@ -216,7 +216,6 @@ public final class WorkstationBookmarkAction implements BookmarkAction {
 						false
 					);
 					InteractionResult result = minecraft.gameMode.useItemOn(player, InteractionHand.MAIN_HAND, hit);
-					restoreSelectedSlot(player);
 					log("OPEN result=%s target=%s", result, targetPos);
 					state = WorkstationState.WAIT_OPEN;
 					waitTicks = 0;
@@ -225,6 +224,7 @@ public final class WorkstationBookmarkAction implements BookmarkAction {
 				case WAIT_OPEN -> {
 					AbstractContainerMenu current = player.containerMenu;
 					if (current != originalContainer) {
+						restoreSelectedSlot(player);
 						// The workstation GUI is open: continue into the same transfer step the
 						// already-open branch uses, so whether to fill (autoTransferItems) is
 						// decided in exactly one place.
@@ -301,14 +301,21 @@ public final class WorkstationBookmarkAction implements BookmarkAction {
 		public void cancel() {
 			// Best-effort restore: return to the player inventory if a workstation is open.
 			LocalPlayer player = context.player();
-			if (player != null && player.containerMenu != originalContainer) {
-				player.closeContainer();
+			if (player != null) {
+				restoreSelectedSlot(player);
+				if (player.containerMenu != originalContainer) {
+					player.closeContainer();
+				}
 			}
 			AutoCraftManager.reanchorSession();
 		}
 
 		/** Returns a terminal result and re-anchors the session's container for the enclosing chain. */
 		private BookmarkActionResult terminal(BookmarkActionResult result) {
+			LocalPlayer player = context.player();
+			if (player != null) {
+				restoreSelectedSlot(player);
+			}
 			AutoCraftManager.reanchorSession();
 			return result;
 		}
@@ -501,11 +508,19 @@ public final class WorkstationBookmarkAction implements BookmarkAction {
 		private record RecipeInput(ItemStack item, int count) {
 		}
 
-		/** Switches the selected hotbar slot to the first empty one (so block items aren't placed). */
+		/** Switches the selected hotbar slot to an empty one or non-block slot (so block items aren't placed). */
 		private static void selectEmptyHotbarSlot(LocalPlayer player) {
 			Inventory inv = player.getInventory();
 			for (int i = 0; i < 9; i++) {
 				if (inv.getItem(i).isEmpty()) {
+					inv.selected = i;
+					player.connection.send(new ServerboundSetCarriedItemPacket(i));
+					return;
+				}
+			}
+			// Fallback: if no hotbar slot is completely empty, prefer a non-BlockItem slot
+			for (int i = 0; i < 9; i++) {
+				if (!(inv.getItem(i).getItem() instanceof net.minecraft.world.item.BlockItem)) {
 					inv.selected = i;
 					player.connection.send(new ServerboundSetCarriedItemPacket(i));
 					return;

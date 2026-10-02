@@ -17,6 +17,10 @@ A pure-client mod that turns JEI bookmarks into a one-click crafting pipeline.
   decided by `autoTransferItems`.
 - **Highlight recipe workstations** — on a non-crafting JEI recipe page, press **H** to highlight
   every workstation block for the current recipe across the loaded world.
+- **Sort bookmarks** — while hovering over the JEI bookmark overlay, press **F5** to automatically
+  reorder bookmarks: identical items are grouped together, recipes with crafting relationships are
+  arranged in dependency order (materials before products), recipe bookmarks are treated by their
+  displayed item, and unrelated bookmarks preserve their relative positions.
 
 ## Configuration
 
@@ -26,9 +30,11 @@ features:
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `enableWorkstationHighlight` | `true` | Enable the recipe-workstation highlight (H key). |
+| `closeGuiOnWorkstationHighlight` | `true` | Automatically close the open GUI when workstation highlight is triggered. |
 | `autoOpenWorkstation` | `true` | When the workstation is not already open (and no valid transfer handler applies), auto-craft opens the nearest matching workstation GUI. |
 | `autoTransferItems` | `true` | Whether the workstation is auto-filled after opening (or when it is already open / a valid transfer handler applies). When disabled the action only opens/acknowledges the workstation and stops without inserting anything. |
 | `workstationMaxDistance` | `6` | Max distance (blocks) to search for a workstation to open. Defaults to the vanilla server's block interaction limit; farther can never be opened. |
+| `minHighlightDistance` | `16` | Reference distance (blocks) for minimum highlight size: highlights will not appear smaller than a 1x1 block viewed at this distance. Beyond it, highlights scale up with distance. Set to 0 to disable. |
 
 ## API
 

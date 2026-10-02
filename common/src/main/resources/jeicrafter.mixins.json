@@ -11,6 +11,7 @@
         "MixinMinecraft",
         "MixinJeiFocusInputHandler",
         "MixinJeiBookmarkOverlay",
+        "MixinJeiBookmarkList",
         "MixinJeiRecipeTransferButton",
         "MixinJeiRecipeTransferErrorMissingSlots",
         "MixinJeiRecipesGui"
